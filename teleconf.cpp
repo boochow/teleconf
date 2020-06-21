@@ -6,53 +6,89 @@
 #include "biquad.hpp"
 
 // filter parameters 
-#define LPF_FC 1400.f
-#define HPF_FC 300.f
+#define LPF_FC 2400.f
+#define HPF_FC 420.f
 #define LPF_Q  0.707f
 
 // filters before downsampling
-static dsp::BiQuad s_bq_lpf;
-static dsp::BiQuad s_bqs_lpf;
-static dsp::BiQuad s_bq_hpf;
-static dsp::BiQuad s_bqs_hpf;
+static dsp::BiQuad s_bq_lpf_r;
+static dsp::BiQuad s_bqs_lpf_r;
+static dsp::BiQuad s_bq_hpf_r;
+static dsp::BiQuad s_bqs_hpf_r;
+static dsp::BiQuad s_bq_lpf_l;
+static dsp::BiQuad s_bqs_lpf_l;
+static dsp::BiQuad s_bq_hpf_l;
+static dsp::BiQuad s_bqs_hpf_l;
 // filters after downsampling
-static dsp::BiQuad s_bq_lpf_out;
-static dsp::BiQuad s_bqs_lpf_out;
-static dsp::BiQuad s_bq_lpf_out2;
-static dsp::BiQuad s_bqs_lpf_out2;
+static dsp::BiQuad s_bq_lpf_out_r;
+static dsp::BiQuad s_bqs_lpf_out_r;
+static dsp::BiQuad s_bq_lpf_out2_r;
+static dsp::BiQuad s_bqs_lpf_out2_r;
+static dsp::BiQuad s_bq_lpf_out_l;
+static dsp::BiQuad s_bqs_lpf_out_l;
+static dsp::BiQuad s_bq_lpf_out2_l;
+static dsp::BiQuad s_bqs_lpf_out2_l;
 
 static const float s_fs_recip = 1.f / 48000.f;
 
 static float dry = 0.f;
 static float wet = 1.f;
 static uint32_t count = 0;
-static float lastmy;
-static float lastsy;
+static float lastmy_r;
+static float lastsy_r;
+static float lastmy_l;
+static float lastsy_l;
 
 void init_lpf(const float f, const float q) {
-    float wc = s_bq_lpf.mCoeffs.wc(f, s_fs_recip);
-    s_bq_lpf.mCoeffs.setSOLP(fx_tanpif(wc), q);
-    s_bqs_lpf.mCoeffs     = s_bq_lpf.mCoeffs;
-    s_bq_lpf_out.mCoeffs  = s_bq_lpf.mCoeffs;
-    s_bqs_lpf_out.mCoeffs = s_bq_lpf.mCoeffs;
-    s_bq_lpf_out2.mCoeffs  = s_bq_lpf.mCoeffs;
-    s_bqs_lpf_out2.mCoeffs = s_bq_lpf.mCoeffs;
+    float wc = s_bq_lpf_r.mCoeffs.wc(f, s_fs_recip);
+    s_bq_lpf_r.mCoeffs.setSOLP(fx_tanpif(wc), q);
+    s_bqs_lpf_r.mCoeffs     = s_bq_lpf_r.mCoeffs;
+    s_bq_lpf_out_r.mCoeffs  = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out_r.mCoeffs = s_bq_lpf_r.mCoeffs;
+    s_bq_lpf_out2_r.mCoeffs  = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out2_r.mCoeffs = s_bq_lpf_r.mCoeffs;
+
+    s_bq_lpf_l.mCoeffs     = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_l.mCoeffs     = s_bq_lpf_r.mCoeffs;
+    s_bq_lpf_out_l.mCoeffs  = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out_l.mCoeffs = s_bq_lpf_r.mCoeffs;
+    s_bq_lpf_out2_l.mCoeffs  = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out2_l.mCoeffs = s_bq_lpf_r.mCoeffs;
 }
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
 {
-    s_bq_lpf.flush();
-    s_bqs_lpf.flush();
-    s_bq_lpf_out.flush();
-    s_bqs_lpf_out.flush();
-    s_bq_lpf_out2.flush();
-    s_bqs_lpf_out2.flush();
+    s_bq_lpf_r.flush();
+    s_bqs_lpf_r.flush();
+    s_bq_lpf_out_r.flush();
+    s_bqs_lpf_out_r.flush();
+    s_bq_lpf_out2_r.flush();
+    s_bqs_lpf_out2_r.flush();
+
+    s_bq_lpf_l.flush();
+    s_bqs_lpf_l.flush();
+    s_bq_lpf_out_l.flush();
+    s_bqs_lpf_out_l.flush();
+    s_bq_lpf_out2_l.flush();
+    s_bqs_lpf_out2_l.flush();
+
     init_lpf(LPF_FC, LPF_Q);
-    float wc = s_bq_hpf.mCoeffs.wc(HPF_FC, s_fs_recip);
-    s_bq_hpf.flush();
-    s_bqs_hpf.flush();
-    s_bq_hpf.mCoeffs.setFOHP(fx_tanpif(wc));
-    s_bqs_hpf.mCoeffs = s_bq_hpf.mCoeffs;
+
+    float wc = s_bq_hpf_r.mCoeffs.wc(HPF_FC, s_fs_recip);
+    s_bq_hpf_r.flush();
+    s_bqs_hpf_r.flush();
+    s_bq_hpf_l.flush();
+    s_bqs_hpf_l.flush();
+
+    s_bq_hpf_r.mCoeffs.setFOHP(fx_tanpif(wc));
+    s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
+    s_bq_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
+    s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
+
+    s_bq_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
+    s_bqs_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
+    s_bq_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
+    s_bqs_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
 }
 
 __fast_inline float g711(const float s) {
@@ -88,19 +124,37 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
   float vmx;
   float vsx;
   for (; my != my_e; ) {
-      vmx = s_bq_hpf.process_fo(s_bq_lpf.process_so(*mx));
-      vsx = s_bqs_hpf.process_fo(s_bqs_lpf.process_so(*sx));
+
+      // Left channel
+      vmx = s_bq_hpf_l.process_fo(s_bq_lpf_l.process_so(*mx));
+      vsx = s_bqs_hpf_l.process_fo(s_bqs_lpf_l.process_so(*sx));
 
       if (count == 0) {
-          lastmy = g711(vmx);
-          lastsy = g711(vsx);
+          lastmy_l = g711(vmx);
+          lastsy_l = g711(vsx);
       }
-      count = (count + 1) % 6;
 
       *my++ = dry * (*mx++) + wet * \
-          s_bq_lpf_out2.process_so(s_bq_lpf_out.process_so(lastmy));
+          s_bq_lpf_out2_l.process_so(s_bq_lpf_out_l.process_so(lastmy_l));
       *sy++ = dry * (*sx++) + wet * \
-          s_bq_lpf_out2.process_so(s_bqs_lpf_out.process_so(lastsy));
+          s_bq_lpf_out2_l.process_so(s_bqs_lpf_out_l.process_so(lastsy_l));
+
+      // Right channel
+      vmx = s_bq_hpf_r.process_fo(s_bq_lpf_r.process_so(*mx));
+      vsx = s_bqs_hpf_r.process_fo(s_bqs_lpf_r.process_so(*sx));
+
+      if (count == 0) {
+          lastmy_r = g711(vmx);
+          lastsy_r = g711(vsx);
+      }
+
+      *my++ = dry * (*mx++) + wet * \
+          s_bq_lpf_out2_r.process_so(s_bq_lpf_out_r.process_so(lastmy_r));
+      *sy++ = dry * (*sx++) + wet * \
+          s_bq_lpf_out2_r.process_so(s_bqs_lpf_out_r.process_so(lastsy_r));
+
+
+      count = (count + 1) % 6;
   }
 }
 
@@ -113,8 +167,8 @@ void MODFX_PARAM(uint8_t index, int32_t value)
       init_lpf(LPF_FC, LPF_Q  + 1.6 * valf);
     break;
   case k_user_modfx_param_depth:
-      dry = valf;
-      wet = 1.0 - dry;
+      wet = valf;
+      dry = 1.0 - wet;
     break;
   default:
     break;

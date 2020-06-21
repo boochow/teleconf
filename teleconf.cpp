@@ -5,6 +5,8 @@
 #include "usermodfx.h"
 #include "biquad.hpp"
 
+#define SUBTIMBRE 0
+
 // filter parameters 
 #define LPF_FC 3000.f
 #define HPF_FC 300.f
@@ -12,22 +14,26 @@
 
 // filters before downsampling
 static dsp::BiQuad s_bq_lpf_r;
-static dsp::BiQuad s_bqs_lpf_r;
 static dsp::BiQuad s_bq_hpf_r;
-static dsp::BiQuad s_bqs_hpf_r;
 static dsp::BiQuad s_bq_lpf_l;
-static dsp::BiQuad s_bqs_lpf_l;
 static dsp::BiQuad s_bq_hpf_l;
+#if SUBTIMBRE
+static dsp::BiQuad s_bqs_lpf_r;
+static dsp::BiQuad s_bqs_hpf_r;
+static dsp::BiQuad s_bqs_lpf_l;
 static dsp::BiQuad s_bqs_hpf_l;
+#endif
 // filters after downsampling
 static dsp::BiQuad s_bq_lpf_out_r;
-static dsp::BiQuad s_bqs_lpf_out_r;
 static dsp::BiQuad s_bq_lpf_out2_r;
-static dsp::BiQuad s_bqs_lpf_out2_r;
 static dsp::BiQuad s_bq_lpf_out_l;
-static dsp::BiQuad s_bqs_lpf_out_l;
 static dsp::BiQuad s_bq_lpf_out2_l;
+#if SUBTIMBRE
+static dsp::BiQuad s_bqs_lpf_out_r;
+static dsp::BiQuad s_bqs_lpf_out2_r;
+static dsp::BiQuad s_bqs_lpf_out_l;
 static dsp::BiQuad s_bqs_lpf_out2_l;
+#endif
 
 static const float s_fs_recip = 1.f / 48000.f;
 
@@ -35,55 +41,64 @@ static float dry = 0.f;
 static float wet = 1.f;
 static uint32_t count = 0;
 static float lastmy_r;
-static float lastsy_r;
 static float lastmy_l;
+#if SUBTIMBRE
+static float lastsy_r;
 static float lastsy_l;
+#endif
 
 void init_lpf(const float f, const float q) {
     float wc = s_bq_lpf_r.mCoeffs.wc(f, s_fs_recip);
     s_bq_lpf_r.mCoeffs.setSOLP(fx_tanpif(wc), q);
-    s_bqs_lpf_r.mCoeffs     = s_bq_lpf_r.mCoeffs;
     s_bq_lpf_out_r.mCoeffs  = s_bq_lpf_r.mCoeffs;
-    s_bqs_lpf_out_r.mCoeffs = s_bq_lpf_r.mCoeffs;
     s_bq_lpf_out2_r.mCoeffs  = s_bq_lpf_r.mCoeffs;
+#if SUBTIMBRE
+    s_bqs_lpf_r.mCoeffs     = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out_r.mCoeffs = s_bq_lpf_r.mCoeffs;
     s_bqs_lpf_out2_r.mCoeffs = s_bq_lpf_r.mCoeffs;
+#endif
 
     s_bq_lpf_l.mCoeffs     = s_bq_lpf_r.mCoeffs;
-    s_bqs_lpf_l.mCoeffs     = s_bq_lpf_r.mCoeffs;
     s_bq_lpf_out_l.mCoeffs  = s_bq_lpf_r.mCoeffs;
-    s_bqs_lpf_out_l.mCoeffs = s_bq_lpf_r.mCoeffs;
     s_bq_lpf_out2_l.mCoeffs  = s_bq_lpf_r.mCoeffs;
+#if SUBTIMBRE
+    s_bqs_lpf_l.mCoeffs     = s_bq_lpf_r.mCoeffs;
+    s_bqs_lpf_out_l.mCoeffs = s_bq_lpf_r.mCoeffs;
     s_bqs_lpf_out2_l.mCoeffs = s_bq_lpf_r.mCoeffs;
+#endif
 }
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
 {
     s_bq_lpf_r.flush();
-    s_bqs_lpf_r.flush();
     s_bq_lpf_out_r.flush();
-    s_bqs_lpf_out_r.flush();
     s_bq_lpf_out2_r.flush();
-    s_bqs_lpf_out2_r.flush();
-
     s_bq_lpf_l.flush();
-    s_bqs_lpf_l.flush();
     s_bq_lpf_out_l.flush();
-    s_bqs_lpf_out_l.flush();
     s_bq_lpf_out2_l.flush();
+    s_bq_hpf_r.flush();
+    s_bq_hpf_l.flush();
+#if SUBTIMBRE
+    s_bqs_lpf_r.flush();
+    s_bqs_lpf_out_r.flush();
+    s_bqs_lpf_out2_r.flush();
+    s_bqs_lpf_l.flush();
+    s_bqs_lpf_out_l.flush();
     s_bqs_lpf_out2_l.flush();
+    s_bqs_hpf_r.flush();
+    s_bqs_hpf_l.flush();
+#endif
 
     init_lpf(LPF_FC, LPF_Q);
 
     float wc = s_bq_hpf_r.mCoeffs.wc(HPF_FC, s_fs_recip);
-    s_bq_hpf_r.flush();
-    s_bqs_hpf_r.flush();
-    s_bq_hpf_l.flush();
-    s_bqs_hpf_l.flush();
 
     s_bq_hpf_r.mCoeffs.setSOHP(fx_tanpif(wc), 0.5);
-    s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
     s_bq_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
+#if SUBTIMBRE
+    s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
     s_bqs_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
+#endif
 }
 
 __fast_inline float g711(const float s) {
@@ -122,32 +137,43 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
 
       // Left channel
       vmx = s_bq_hpf_l.process_so(s_bq_lpf_l.process_so(*mx));
+#if SUBTIMBRE
       vsx = s_bqs_hpf_l.process_so(s_bqs_lpf_l.process_so(*sx));
+#endif
 
       if (count == 0) {
           lastmy_l = g711(vmx);
+#if SUBTIMBRE
           lastsy_l = g711(vsx);
+#endif
       }
 
       *my++ = dry * (*mx++) + wet * \
           s_bq_lpf_out2_l.process_so(s_bq_lpf_out_l.process_so(lastmy_l));
+#if SUBTIMBRE
       *sy++ = dry * (*sx++) + wet * \
           s_bq_lpf_out2_l.process_so(s_bqs_lpf_out_l.process_so(lastsy_l));
+#endif
 
       // Right channel
       vmx = s_bq_hpf_r.process_so(s_bq_lpf_r.process_so(*mx));
+#if SUBTIMBRE
       vsx = s_bqs_hpf_r.process_so(s_bqs_lpf_r.process_so(*sx));
+#endif
 
       if (count == 0) {
           lastmy_r = g711(vmx);
+#if SUBTIMBRE
           lastsy_r = g711(vsx);
+#endif
       }
 
       *my++ = dry * (*mx++) + wet * \
           s_bq_lpf_out2_r.process_so(s_bq_lpf_out_r.process_so(lastmy_r));
+#if SUBTIMBRE
       *sy++ = dry * (*sx++) + wet * \
           s_bq_lpf_out2_r.process_so(s_bqs_lpf_out_r.process_so(lastsy_r));
-
+#endif
 
       count = (count + 1) % 6;
   }

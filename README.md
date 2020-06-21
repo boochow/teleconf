@@ -12,10 +12,6 @@ Technically this module applies a bandpass filter and [G.711 a-law](https://en.w
 
 ## Parameters
 
-1. Time
+1. Time changes the filters' resonance value.
 
-Changes the filters' resonance value.
-
-1. Depth
-
-Adds the dry signal to the output signal.
+1. Depth adds the wet signal to the output signal.

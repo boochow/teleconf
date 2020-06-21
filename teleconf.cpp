@@ -24,19 +24,12 @@ static dsp::BiQuad s_bqs_lpf_out2;
 static const float s_fs_recip = 1.f / 48000.f;
 
 static float dry = 0.f;
-
 static uint32_t count = 0;
 static float lastmy;
 static float lastsy;
 
 void init_lpf(const float f, const float q) {
     float wc = s_bq_lpf.mCoeffs.wc(f, s_fs_recip);
-    s_bq_lpf.flush();
-    s_bqs_lpf.flush();
-    s_bq_lpf_out.flush();
-    s_bqs_lpf_out.flush();
-    s_bq_lpf_out2.flush();
-    s_bqs_lpf_out2.flush();
     s_bq_lpf.mCoeffs.setSOLP(fx_tanpif(wc), q);
     s_bqs_lpf.mCoeffs     = s_bq_lpf.mCoeffs;
     s_bq_lpf_out.mCoeffs  = s_bq_lpf.mCoeffs;
@@ -47,6 +40,12 @@ void init_lpf(const float f, const float q) {
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
 {
+    s_bq_lpf.flush();
+    s_bqs_lpf.flush();
+    s_bq_lpf_out.flush();
+    s_bqs_lpf_out.flush();
+    s_bq_lpf_out2.flush();
+    s_bqs_lpf_out2.flush();
     init_lpf(LPF_FC, LPF_Q);
     float wc = s_bq_hpf.mCoeffs.wc(HPF_FC, s_fs_recip);
     s_bq_hpf.flush();
@@ -90,17 +89,18 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
   float dmy;
   float dsy;
   for (; my != my_e; ) {
-      vmx = s_bq_hpf.process_fo(s_bq_lpf.process_so(*mx++));
-      vsx = s_bqs_hpf.process_fo(s_bqs_lpf.process_so(*sx++));
+      vmx = s_bq_hpf.process_fo(s_bq_lpf.process_so(*mx));
+      vsx = s_bqs_hpf.process_fo(s_bqs_lpf.process_so(*sx));
 
       if (count == 0) {
           lastmy = g711(vmx);
           lastsy = g711(vsx);
       }
       count = (count + 1) % 6;
-      *my++ = dry * vmx + (1 - dry) * \
+
+      *my++ = dry * (*mx++) + (1 - dry) * \
           s_bq_lpf_out2.process_so(s_bq_lpf_out.process_so(lastmy));
-      *sy++ = dry * vsx + (1 - dry) * \
+      *sy++ = dry * (*sx++) + (1 - dry) * \
           s_bq_lpf_out2.process_so(s_bqs_lpf_out.process_so(lastsy));
   }
 }

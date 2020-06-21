@@ -8,7 +8,7 @@
 // filter parameters 
 #define LPF_FC 1400.f
 #define HPF_FC 300.f
-#define LPF_Q  0.5f
+#define LPF_Q  0.707f
 
 // filters before downsampling
 static dsp::BiQuad s_bq_lpf;
@@ -23,7 +23,6 @@ static dsp::BiQuad s_bqs_lpf_out2;
 
 static const float s_fs_recip = 1.f / 48000.f;
 
-static float amp = 15.f;
 static float dry = 0.f;
 
 static uint32_t count = 0;
@@ -57,21 +56,21 @@ void MODFX_INIT(uint32_t platform, uint32_t api)
 }
 
 __fast_inline float g711(const float s) {
-    q15_t val;
-    int16_t sign =1;
+    q15_t val = f32_to_q15(s);
+    int16_t sign = (val < 0) ? -1 : 1;
+    val = q15abs(val);
+
     uint16_t mask = 1 << 14;
     int i;
-    val = f32_to_q15(s);
-    sign = (val < 0) ? -1 : 1;
-    val = q15abs(val);
     for(i = 0; i < 6; i++) {
         if (val & mask)
-            mask >>= 1;
-        else
             break;
+        else
+            val <<=1;
     }
-    mask = 0b1111000 << (7 - i);
-    val = sign * (val & mask);
+    val &= 0x7c00;
+    val >>= i;
+    val = val * sign;
     return q15_to_f32(val);
 }
 
@@ -99,7 +98,6 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
           lastsy = g711(vsx);
       }
       count = (count + 1) % 6;
-
       *my++ = dry * vmx + (1 - dry) * \
           s_bq_lpf_out2.process_so(s_bq_lpf_out.process_so(lastmy));
       *sy++ = dry * vsx + (1 - dry) * \
@@ -114,7 +112,6 @@ void MODFX_PARAM(uint8_t index, int32_t value)
   switch (index) {
   case k_user_modfx_param_time:
       init_lpf(LPF_FC, LPF_Q  + 1.6 * valf);
-      amp = 20 - valf * 5;
     break;
   case k_user_modfx_param_depth:
       dry = valf;

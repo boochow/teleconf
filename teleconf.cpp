@@ -6,8 +6,8 @@
 #include "biquad.hpp"
 
 // filter parameters 
-#define LPF_FC 2400.f
-#define HPF_FC 420.f
+#define LPF_FC 3000.f
+#define HPF_FC 300.f
 #define LPF_Q  0.707f
 
 // filters before downsampling
@@ -80,13 +80,8 @@ void MODFX_INIT(uint32_t platform, uint32_t api)
     s_bq_hpf_l.flush();
     s_bqs_hpf_l.flush();
 
-    s_bq_hpf_r.mCoeffs.setFOHP(fx_tanpif(wc));
+    s_bq_hpf_r.mCoeffs.setSOHP(fx_tanpif(wc), 0.5);
     s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
-    s_bq_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
-    s_bqs_hpf_r.mCoeffs = s_bq_hpf_r.mCoeffs;
-
-    s_bq_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
-    s_bqs_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
     s_bq_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
     s_bqs_hpf_l.mCoeffs = s_bq_hpf_r.mCoeffs;
 }
@@ -126,8 +121,8 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
   for (; my != my_e; ) {
 
       // Left channel
-      vmx = s_bq_hpf_l.process_fo(s_bq_lpf_l.process_so(*mx));
-      vsx = s_bqs_hpf_l.process_fo(s_bqs_lpf_l.process_so(*sx));
+      vmx = s_bq_hpf_l.process_so(s_bq_lpf_l.process_so(*mx));
+      vsx = s_bqs_hpf_l.process_so(s_bqs_lpf_l.process_so(*sx));
 
       if (count == 0) {
           lastmy_l = g711(vmx);
@@ -140,8 +135,8 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
           s_bq_lpf_out2_l.process_so(s_bqs_lpf_out_l.process_so(lastsy_l));
 
       // Right channel
-      vmx = s_bq_hpf_r.process_fo(s_bq_lpf_r.process_so(*mx));
-      vsx = s_bqs_hpf_r.process_fo(s_bqs_lpf_r.process_so(*sx));
+      vmx = s_bq_hpf_r.process_so(s_bq_lpf_r.process_so(*mx));
+      vsx = s_bqs_hpf_r.process_so(s_bqs_lpf_r.process_so(*sx));
 
       if (count == 0) {
           lastmy_r = g711(vmx);

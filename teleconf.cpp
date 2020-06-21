@@ -24,6 +24,7 @@ static dsp::BiQuad s_bqs_lpf_out2;
 static const float s_fs_recip = 1.f / 48000.f;
 
 static float dry = 0.f;
+static float wet = 1.f;
 static uint32_t count = 0;
 static float lastmy;
 static float lastsy;
@@ -86,8 +87,6 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
   
   float vmx;
   float vsx;
-  float dmy;
-  float dsy;
   for (; my != my_e; ) {
       vmx = s_bq_hpf.process_fo(s_bq_lpf.process_so(*mx));
       vsx = s_bqs_hpf.process_fo(s_bqs_lpf.process_so(*sx));
@@ -98,9 +97,9 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
       }
       count = (count + 1) % 6;
 
-      *my++ = dry * (*mx++) + (1 - dry) * \
+      *my++ = dry * (*mx++) + wet * \
           s_bq_lpf_out2.process_so(s_bq_lpf_out.process_so(lastmy));
-      *sy++ = dry * (*sx++) + (1 - dry) * \
+      *sy++ = dry * (*sx++) + wet * \
           s_bq_lpf_out2.process_so(s_bqs_lpf_out.process_so(lastsy));
   }
 }
@@ -115,6 +114,7 @@ void MODFX_PARAM(uint8_t index, int32_t value)
     break;
   case k_user_modfx_param_depth:
       dry = valf;
+      wet = 1.0 - dry;
     break;
   default:
     break;

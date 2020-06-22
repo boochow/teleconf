@@ -2,6 +2,8 @@
 
 Binaries are available in [this page](https://github.com/boochow/teleconf/releases).
 
+Demo video: [https://www.youtube.com/watch?v=OHrTgCjFOb0](https://www.youtube.com/watch?v=OHrTgCjFOb0)
+
 ## About
 
 Teleconf is a modulation FX unit for Korg logue SDK compatible synthesizers.

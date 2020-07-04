@@ -2,7 +2,7 @@
 
 Binaries are available in [this page](https://github.com/boochow/teleconf/releases).
 
-Demo video: [https://www.youtube.com/watch?v=OHrTgCjFOb0](https://www.youtube.com/watch?v=OHrTgCjFOb0)
+[![top-page](https://raw.githubusercontent.com/boochow/teleconf/images/teleconf.jpg)](https://www.youtube.com/watch?v=OHrTgCjFOb0)
 
 ## About
 

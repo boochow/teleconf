@@ -17,3 +17,7 @@ Technically this module applies a bandpass filter and [G.711 a-law](https://en.w
 1. Time changes the filters' resonance value.
 
 1. Depth adds the wet signal to the output signal.
+
+## Others
+
+My other user oscillators / modules are [here](https://blog.boochow.com/logue).
